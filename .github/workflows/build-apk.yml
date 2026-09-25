@@ -19,9 +19,16 @@ jobs:
       - name: Extract JARVIS project
         run: |
           rm -rf buildsrc
-          mkdir buildsrc
-          unzip -q JARVIS_PhoneBuild.zip -d buildsrc
-          test -f buildsrc/JARVIS_PhoneBuild/settings.gradle.kts
+          mkdir -p buildsrc
+          unzip -o JARVIS_PhoneBuild.zip -d buildsrc
+          echo "Extracted files:"
+          find buildsrc -maxdepth 3 -type f | head -50
+
+      - name: Find Android project
+        run: |
+          PROJECT_DIR=$(dirname "$(find buildsrc -name settings.gradle.kts -print -quit)")
+          echo "PROJECT_DIR=$PROJECT_DIR"
+          echo "PROJECT_DIR=$PROJECT_DIR" >> "$GITHUB_ENV"
 
       - name: Set up JDK 17
         uses: actions/setup-java@v4
@@ -35,12 +42,13 @@ jobs:
           gradle-version: '8.9'
 
       - name: Build JARVIS APK
-        working-directory: buildsrc/JARVIS_PhoneBuild
-        run: gradle --no-daemon assembleDebug
+        working-directory: ${{ env.PROJECT_DIR }}
+        run: |
+          gradle --no-daemon assembleDebug
 
       - name: Upload JARVIS APK
         uses: actions/upload-artifact@v4
         with:
           name: JARVIS-debug-apk
-          path: buildsrc/JARVIS_PhoneBuild/app/build/outputs/apk/debug/app-debug.apk
+          path: ${{ env.PROJECT_DIR }}/app/build/outputs/apk/debug/app-debug.apk
           if-no-files-found: error
