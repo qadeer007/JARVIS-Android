@@ -21,13 +21,13 @@ jobs:
           rm -rf buildsrc
           mkdir -p buildsrc
           unzip -o JARVIS_PhoneBuild.zip -d buildsrc
-          echo "Extracted files:"
-          find buildsrc -maxdepth 3 -type f | head -50
+          echo "Project extracted successfully"
+          find buildsrc -name settings.gradle.kts -print
 
       - name: Find Android project
         run: |
           PROJECT_DIR=$(dirname "$(find buildsrc -name settings.gradle.kts -print -quit)")
-          echo "PROJECT_DIR=$PROJECT_DIR"
+          echo "Android project: $PROJECT_DIR"
           echo "PROJECT_DIR=$PROJECT_DIR" >> "$GITHUB_ENV"
 
       - name: Set up JDK 17
@@ -40,6 +40,33 @@ jobs:
         uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: '8.9'
+
+      - name: Fix JVM target
+        working-directory: ${{ env.PROJECT_DIR }}
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+
+          p = Path("app/build.gradle.kts")
+          s = p.read_text()
+
+          s += """
+
+          android {
+              compileOptions {
+                  sourceCompatibility = JavaVersion.VERSION_17
+                  targetCompatibility = JavaVersion.VERSION_17
+              }
+          }
+
+          kotlin {
+              jvmToolchain(17)
+          }
+          """
+
+          p.write_text(s)
+          print("JVM target fixed to 17")
+          PY
 
       - name: Build JARVIS APK
         working-directory: ${{ env.PROJECT_DIR }}
