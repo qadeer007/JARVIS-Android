@@ -8,12 +8,20 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+
     permissions:
       contents: read
 
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+
+      - name: Extract JARVIS project
+        run: |
+          rm -rf buildsrc
+          mkdir buildsrc
+          unzip -q JARVIS_PhoneBuild.zip -d buildsrc
+          test -f buildsrc/JARVIS_PhoneBuild/settings.gradle.kts
 
       - name: Set up JDK 17
         uses: actions/setup-java@v4
@@ -26,12 +34,13 @@ jobs:
         with:
           gradle-version: '8.9'
 
-      - name: Build debug APK
+      - name: Build JARVIS APK
+        working-directory: buildsrc/JARVIS_PhoneBuild
         run: gradle --no-daemon assembleDebug
 
-      - name: Upload APK
+      - name: Upload JARVIS APK
         uses: actions/upload-artifact@v4
         with:
           name: JARVIS-debug-apk
-          path: app/build/outputs/apk/debug/app-debug.apk
+          path: buildsrc/JARVIS_PhoneBuild/app/build/outputs/apk/debug/app-debug.apk
           if-no-files-found: error
